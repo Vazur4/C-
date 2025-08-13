@@ -1,0 +1,271 @@
+// Practica 1, recordando C++ 05/jul
+
+#include <sstream>
+#include <filesystem>
+
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <map>
+using namespace std;
+const vector<string>Materias = {"matematicas", "lengua", "fisica", "quimica", "etica", "biologia"};
+class Alumno {
+private:
+    string nombre;
+    string edad;
+    int id;
+    bool inscripcion;
+    map<string,int>calificaciones;
+    
+
+public:
+string obtenerNombre() { return nombre; }
+string obtenerEdad() { return edad; }
+bool estaInscrito() { return inscripcion; }
+int obtenerId(){return id; }
+
+    Alumno(string n,string e, int i) {
+        nombre = n;
+        edad = e;
+        id = i;
+        inscripcion = false;
+        for(const string& mat: Materias){{
+            calificaciones[mat] = -1;
+        }}
+    }
+    Alumno() {
+    nombre = "";
+    id = 0;
+    inscripcion = false;
+}
+
+
+    void cargarDesdeCSV(const string& linea) {
+        stringstream ss(linea);
+        string campo;
+        getline(ss, nombre, ',');
+        getline(ss, edad, ',');
+        getline(ss, campo, ',');
+        id = stoi(campo);
+        getline(ss, campo, ','); // promedio, se ignora
+        getline(ss, campo, ',');
+        inscripcion = (campo == "Pagado");
+        for(const string& mat: Materias) {
+            if (getline(ss, campo, ',')) {
+                if (!campo.empty()) {
+                    calificaciones[mat] = stoi(campo);
+                } else {
+                    calificaciones[mat] = -1;
+                }
+            } else {
+                calificaciones[mat] = -1;
+            }
+        }
+    }
+
+    void agregarCali(string materia, int valor) {
+        if(calificaciones.find(materia)!=calificaciones.end()){
+            calificaciones[materia]=valor;
+            cout << "Calificacion asignada para " << materia << ": "<< valor << endl;
+        }else{
+            cout << "Materia no valida";
+        }}
+
+    float obtenerPromedio() {
+        float suma=0, con=0;
+        for(auto& [materia,valor]: calificaciones){
+            if (valor != -1)
+            {
+                suma += valor;
+                con ++;
+            }
+        }
+        return (con == 0) ? 0: suma/con ;
+    }
+
+    void Inscripcion(int v) {
+        if(v ==1){
+            inscripcion  = true;
+        }
+    }
+
+    void mostrarAlumno() {
+        cout << "\nNombre: " << nombre;
+        cout << "\nEdad: " << edad;
+        cout << "\nID: " << id << endl;
+        for(auto& [materia,valor] : calificaciones){
+            if(valor !=  -1){
+                cout<< " - " << materia << ": " << valor<< "\n";
+
+            }
+            else
+            cout << " - " << materia << ": sin calificar\n";
+            
+        }
+        cout << "\nPromedio: " << obtenerPromedio();
+        cout << "\nInscripcion: " << (inscripcion ? "Pagado" : "Pendiente") << endl;
+    }
+
+    void escribirEnArchivo(ofstream &archivo) {
+        archivo << nombre << "," << edad << "," << id << "," << obtenerPromedio() << "," << (inscripcion ? "Pagado" : "Pendiente");
+        for(const auto& mat: Materias){
+            archivo << "," <<  calificaciones[mat];
+        }
+        archivo << "\n";
+    }
+};
+
+int main() {
+    vector<Alumno> Alumnos;
+    ifstream archivoEntrada("datos.csv");
+string linea;
+getline(archivoEntrada, linea); // Salta la primera línea (encabezado)
+while (getline(archivoEntrada, linea)) {
+    Alumno a;
+    a.cargarDesdeCSV(linea);
+    Alumnos.push_back(a);
+}
+archivoEntrada.close();
+cout << "Datos cargados desde datos.csv: " << Alumnos.size() << " alumnos.\n";
+
+    
+    int opcion;
+
+    do {
+        cout << "\n--- Menu ---\n";
+        cout << "1. Agregar alumno\n";
+        cout << "2. Agregar calificaciones (por indice)\n";
+        cout << "3. Mostrar todos los alumnos\n";
+        cout << "4. Mostrar alumno por indice\n";
+        cout << "5. Guardar en archivo\n";
+        cout << "6. Registrar inscripcion\n";
+        cout << "7. Salir\n";
+        cout << "Opcion: ";
+        cin >> opcion;
+
+        switch (opcion) {
+        case 1: {
+            string nombre, edad;
+            int id;
+            cout << "Nombre: ";
+            cin.ignore();
+            getline(cin, nombre);
+            cout << "Edad ";
+            cin >> edad;
+            id =  Alumnos.size() ;
+            Alumnos.emplace_back(nombre, edad,id);
+            cout << "Estudiante agregado en indice: " << id;
+            break;
+        }
+        case 2: {
+            int cali, idx;
+            string materia;
+            cout << "Indice del estudiante: ";
+            cin >> idx;
+            if (idx >= 0 && idx < Alumnos.size()) {
+                cout << "Materias disponibles\n";
+                for(const auto& mat: Materias){
+                    cout << " - " << mat << endl;
+                }
+                int opcion_para_calificar;
+                cout << "1.Calificar una sola materias\n2.Calificar todas las materias\n";
+                cin >> opcion_para_calificar;
+                if (opcion_para_calificar == 1)
+                {
+                cout << "Nombre de la materia: \n";
+                cin.ignore();
+                getline(cin,materia);
+                do
+                {
+                    cout << "Asignar calificacion: \n";
+                    cin >> cali;
+                    if(cali > 10) cout << "Calificaion invalida\n Intente de nuevo\n";
+                } while (cali >10);
+                
+                
+                Alumnos[idx].agregarCali(materia, cali);
+                }
+                else if (opcion_para_calificar == 2)
+                {
+                    for (const auto& M : Materias)
+                    {
+                        cout << M;
+                        do
+                    {
+                    cin >> cali;
+                    if(cali > 10) cout << "Calificaion invalida\n Intente de nuevo\n";
+                    }while (cali >10);
+                    Alumnos[idx].agregarCali(M, cali);
+                    }
+                    
+                }
+                
+                
+                
+            } else {
+                cout << "Indice inválido.\n";
+            }
+            break;
+        }
+        case 3: {
+            for (auto &a : Alumnos) {
+                a.mostrarAlumno();
+            }
+            break;
+        }
+        case 4: {
+            int idx;
+            cout << "Indice del estudiante: ";
+            cin >> idx;
+            if (idx >= 0 && idx < Alumnos.size()) {
+                Alumnos[idx].mostrarAlumno();
+            } else {
+                cout << "Indice inválido.\n";
+            }
+            break;
+        }
+        case 5: {
+            ofstream archivo("datos.csv");
+            if (!archivo) {
+                cout << "No se pudo abrir el archivo.\n";
+                break;
+            }
+            archivo << "Nombre,Edad,ID,Promedio,Inscripción";
+            for(const auto& mat : Materias) {
+                archivo << "," << mat;
+            }
+            archivo << "\n";
+            for (auto &a : Alumnos) {
+                a.escribirEnArchivo(archivo);
+            }
+            archivo.close();
+            cout << "Datos guardados en datos.csv\n";
+            break;
+        }
+        case 6: {
+            int id;
+            cout << "Id del estudiante: ";
+            cin >> id;
+            int ins;
+            cout << "\n1.Pagado";
+            cout << "\n2.No Pagado" << endl;
+            cin >> ins;
+            Alumnos[id].Inscripcion(ins);
+            cout << "Proceso exitoso\n";
+            break;
+
+        }
+
+
+        
+        case 7:
+            cout << "Saliendo...\n";
+            break;
+        default:
+            cout << "Opcion inválida\n";
+        }
+
+    }while (opcion != 7);
+
+    return 0;
+}
